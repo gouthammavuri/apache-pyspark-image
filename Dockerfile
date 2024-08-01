@@ -71,6 +71,16 @@ RUN wget https://aka.ms/download-jdk/microsoft-jdk-17.0.12-linux-x64.tar.gz \
 ENV JAVA_HOME=/usr/local/jdk-17.0.12
 ENV PATH=$JAVA_HOME/bin:$PATH
 
+# Install Scala
+RUN wget https://downloads.lightbend.com/scala/2.12.19/scala-2.12.19.tgz \
+    && tar -xvzf scala-2.12.19.tgz \
+    && mv scala-2.12.19 /usr/local/scala \
+    && rm scala-2.12.19.tgz
+
+# Set SCALA_HOME environment variable
+ENV SCALA_HOME=/usr/local/scala
+ENV PATH=$SCALA_HOME/bin:$PATH
+
 # Install Apache Spark
 RUN wget https://archive.apache.org/dist/spark/spark-3.4.3/spark-3.4.3-bin-hadoop3.tgz \
     && tar -xvzf spark-3.4.3-bin-hadoop3.tgz \
@@ -91,8 +101,8 @@ ENV SPARK_CONF_DIR=/usr/local/spark/conf
 ENV SPARK_MASTER_PORT=7077
 ENV SPARK_MASTER_WEBUI_PORT=8080
 
-ENV SPARK_HISTORY_OPTS="$SPARK_HISTORY_OPTS -Dspark.history.fs.logDirectory=/opt/spark-events -Dspark.history.ui.port=18080"
-ENV SPARK_SUBMIT_OPTS="--Dspark.driver.host=spark-driver"
+ENV SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=/opt/spark-events -Dspark.history.ui.port=18080"
+ENV SPARK_SUBMIT_OPTS="-Dspark.driver.host=spark-driver"
 
 # Set the working directory
 WORKDIR /usr/local/spark
