@@ -87,6 +87,9 @@ RUN wget https://archive.apache.org/dist/spark/spark-3.4.3/spark-3.4.3-bin-hadoo
     && mv spark-3.4.3-bin-hadoop3 /usr/local/spark \
     && rm spark-3.4.3-bin-hadoop3.tgz
 
+# COPY JAR files to the Spark jars directory
+COPY drivers/* /usr/local/spark/jars/
+
 # Set SPARK_HOME environment variable
 ENV SPARK_HOME=/usr/local/spark
 ENV CLASSPATH=/usr/local/spark/jars/*
