@@ -1,5 +1,5 @@
 # Use an official Ubuntu as a parent image
-FROM ubuntu:24.04
+FROM ubuntu:22.04
 
 # Set environment variables to non-interactive for automated installs
 ENV DEBIAN_FRONTEND=noninteractive
@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
     git \
+    gnupg \
     vim \
     build-essential \
     ca-certificates \
@@ -24,11 +25,34 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     libsnappy1v5 \
     libsnappy-dev \
+    lsb-release \
     zlib1g-dev \
     nodejs \
     npm \
     rsync \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Check if the Ubuntu version is supported using bash
+RUN UBUNTU_VERSION=$(lsb_release -rs) && \
+    bash -c 'if ! [[ "18.04 20.04 22.04 23.04 24.04" == *"${UBUNTU_VERSION}"* ]]; then \
+    echo "Ubuntu ${UBUNTU_VERSION} is not currently supported."; \
+    exit 1; \
+    fi'
+
+# Import the Microsoft GPG key and add the Microsoft SQL Server repository
+RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+    curl -sSL https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | tee /etc/apt/sources.list.d/mssql-release.list
+
+# Update the package list and install the required packages
+RUN apt-get update && \
+    ACCEPT_EULA=Y apt-get install -y msodbcsql17 && \
+    ACCEPT_EULA=Y apt-get install -y mssql-tools && \
+    echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> /root/.bashrc && \
+    apt-get install -y unixodbc-dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Source the .bashrc to update the PATH
+RUN /bin/bash -c "source /root/.bashrc"
 
 # Install Python
 RUN wget https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tgz \
