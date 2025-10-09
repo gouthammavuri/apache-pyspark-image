@@ -20,7 +20,7 @@ catch {
 # Define variables
 $imageName = "${username}/spark"  # The name of your Docker image
 $dockerfilePath = "."  # The path to your Dockerfile
-$tags = @("latest", "1.0.0", "stable", "python3.11.9-spark3.4.3-jdk17.0.9")  # List of tags
+$tags = @("latest", "1.0.0", "stable", "python3.14.0-spark4.0.1-jdk21.0.8")  # List of tags
 
 # Build the Docker image
 Write-Host "Building Docker image..."

@@ -1,51 +1,47 @@
+ARG UBUNTU_VERSION=22.04
+
 # Use an official Ubuntu as a parent image
-FROM ubuntu:22.04
+FROM ubuntu:${UBUNTU_VERSION}
 
 # Set environment variables to non-interactive for automated installs
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install necessary packages
+# Sort package names alphanumerically
 RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-utils \
-    wget \
-    curl \
-    git \
-    gnupg \
-    vim \
     build-essential \
     ca-certificates \
     checkinstall \
-    libncursesw5-dev \
-    libssl-dev \
-    libsqlite3-dev \
-    tk-dev \
-    libgdbm-dev \
+    curl \
+    git \
+    gnupg \
     libc6-dev \
     libbz2-dev \
     libffi-dev \
-    libsnappy1v5 \
+    libgdbm-dev \
+    libncursesw5-dev \
     libsnappy-dev \
+    libsnappy1v5 \
+    libsqlite3-dev \
+    libssl-dev \
     lsb-release \
-    zlib1g-dev \
     nodejs \
     npm \
     rsync \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Check if the Ubuntu version is supported using bash
-RUN UBUNTU_VERSION=$(lsb_release -rs) && \
+    tk-dev \
+    vim \
+    wget \
+    zlib1g-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    UBUNTU_VERSION=$(lsb_release -rs) && \
     bash -c 'if ! [[ "18.04 20.04 22.04 23.04 24.04" == *"${UBUNTU_VERSION}"* ]]; then \
     echo "Ubuntu ${UBUNTU_VERSION} is not currently supported."; \
     exit 1; \
-    fi'
-
-# Import the Microsoft GPG key and add the Microsoft SQL Server repository
-RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
-    curl -sSL https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | tee /etc/apt/sources.list.d/mssql-release.list
-
-# Update the package list and install the required packages
-RUN apt-get update && \
-    ACCEPT_EULA=Y apt-get install -y msodbcsql17 && \
+    fi' && \
+    curl -sSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+    curl -sSL https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | tee /etc/apt/sources.list.d/mssql-release.list && \
+    apt-get update && \
+    ACCEPT_EULA=Y apt-get install -y msodbcsql18 && \
     ACCEPT_EULA=Y apt-get install -y mssql-tools && \
     echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> /root/.bashrc && \
     apt-get install -y unixodbc-dev && \
@@ -54,65 +50,65 @@ RUN apt-get update && \
 # Source the .bashrc to update the PATH
 RUN /bin/bash -c "source /root/.bashrc"
 
-# Install Python
-RUN wget https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tgz \
-    && tar -xvzf Python-3.11.9.tgz \
-    && cd Python-3.11.9 \
+# Move ARG instructions closer to their usage
+ARG PYTHON_VERSION=3.14.0
+ADD https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz .
+RUN tar -xvzf Python-${PYTHON_VERSION}.tgz \
+    && cd Python-${PYTHON_VERSION} \
     && ./configure --enable-optimizations \
     && make altinstall \
-    && /usr/local/bin/python3.11 -V \
-    && ln -sf /usr/local/bin/python3.11 /usr/bin/python3.11 \
-    && ln -sf /usr/local/bin/python3.11 /usr/bin/python3 \
+    && /usr/local/bin/python3.14 -V \
+    && ln -sf /usr/local/bin/python3.14 /usr/bin/python3.14 \
+    && ln -sf /usr/local/bin/python3.14 /usr/bin/python3 \
     && cd .. \
-    && rm -rf Python-3.11.9 \
-    && rm Python-3.11.9.tgz
+    && rm -rf Python-${PYTHON_VERSION} \
+    && rm Python-${PYTHON_VERSION}.tgz
+
+ARG JDK_VERSION=21.0.8
+ADD https://aka.ms/download-jdk/microsoft-jdk-${JDK_VERSION}-linux-x64.tar.gz .
+RUN tar -xvzf microsoft-jdk-${JDK_VERSION}-linux-x64.tar.gz \
+    && mv jdk-${JDK_VERSION}+9 jdk-${JDK_VERSION} \
+    && mv jdk-${JDK_VERSION} /usr/local/jdk-${JDK_VERSION} \
+    && rm microsoft-jdk-${JDK_VERSION}-linux-x64.tar.gz
+
+ARG SCALA_VERSION=2.13.1
+ADD https://downloads.lightbend.com/scala/${SCALA_VERSION}/scala-${SCALA_VERSION}.tgz .
+RUN tar -xvzf scala-${SCALA_VERSION}.tgz \
+    && mv scala-${SCALA_VERSION} /usr/local/scala \
+    && rm scala-${SCALA_VERSION}.tgz
+
+ARG SPARK_VERSION=4.0.1
+ADD https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz .
+RUN tar -xvzf spark-${SPARK_VERSION}-bin-hadoop3.tgz \
+    && mv spark-${SPARK_VERSION}-bin-hadoop3 /usr/local/spark \
+    && rm spark-${SPARK_VERSION}-bin-hadoop3.tgz
 
 # Install pip using wget
 RUN wget https://bootstrap.pypa.io/get-pip.py -O get-pip.py && \
-    /usr/local/bin/python3.11 get-pip.py && \
+    /usr/local/bin/python3.14 get-pip.py && \
     rm get-pip.py
 
 # Add pip to PATH
 RUN echo "export PATH=\$PATH:/root/.local/bin" >> /root/.bashrc
 
 # Upgrade pip
-RUN /usr/local/bin/python3.11 -m pip install --upgrade pip --verbose
+RUN /usr/local/bin/python3.14 -m pip install --upgrade pip --verbose
 
 # Install Jupyter
-RUN /usr/local/bin/python3.11 -m pip install jupyter
+RUN /usr/local/bin/python3.14 -m pip install jupyter
 
 # Use bash to source .bashrc and confirm installations
-RUN bash -c "source /root/.bashrc && /usr/local/bin/python3.11 -m pip --version && jupyter --version"
+RUN bash -c "source /root/.bashrc && /usr/local/bin/python3.14 -m pip --version && jupyter --version"
 
 # Install OpenJDK 
-RUN wget https://aka.ms/download-jdk/microsoft-jdk-17.0.12-linux-x64.tar.gz \
-    && tar -xvzf microsoft-jdk-17.0.12-linux-x64.tar.gz \
-    && mv jdk-17.0.12+7 jdk-17.0.12 \
-    && mv jdk-17.0.12 /usr/local/jdk-17.0.12 \
-    && rm microsoft-jdk-17.0.12-linux-x64.tar.gz
-
 # Set JAVA_HOME environment variable
-ENV JAVA_HOME=/usr/local/jdk-17.0.12
+ENV JAVA_HOME=/usr/local/jdk-${JDK_VERSION}
 ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Install Scala
-RUN wget https://downloads.lightbend.com/scala/2.12.19/scala-2.12.19.tgz \
-    && tar -xvzf scala-2.12.19.tgz \
-    && mv scala-2.12.19 /usr/local/scala \
-    && rm scala-2.12.19.tgz
-
 # Set SCALA_HOME environment variable
 ENV SCALA_HOME=/usr/local/scala
 ENV PATH=$SCALA_HOME/bin:$PATH
-
-# Install Apache Spark
-RUN wget https://archive.apache.org/dist/spark/spark-3.4.3/spark-3.4.3-bin-hadoop3.tgz \
-    && tar -xvzf spark-3.4.3-bin-hadoop3.tgz \
-    && mv spark-3.4.3-bin-hadoop3 /usr/local/spark \
-    && rm spark-3.4.3-bin-hadoop3.tgz
-
-# COPY JAR files to the Spark jars directory
-COPY drivers/* /usr/local/spark/jars/
 
 # Set SPARK_HOME environment variable
 ENV SPARK_HOME=/usr/local/spark
