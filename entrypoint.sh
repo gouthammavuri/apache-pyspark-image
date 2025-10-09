@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Validate critical environment variables
 if [ -z "$SPARK_HOME" ] || [ -z "$SPARK_MODE" ]; then
     echo "SPARK_HOME and SPARK_MODE must be set"
@@ -65,16 +64,16 @@ run_client() {
 # Check SPARK_MODE environment variable
 case "$SPARK_MODE" in
   master)
-    exec start_master
+    start_master
     ;;
   worker)
-    exec start_worker
+    start_worker
     ;;
   client)
-    exec run_client
+    run_client
     ;;
   history-server)
-    exec start_history_server
+    start_history_server
     ;;
   *)
     echo "Invalid SPARK_MODE: $SPARK_MODE. Must be 'master', 'worker', 'client', or 'history-server'"
